@@ -165,9 +165,9 @@ select option{background:var(--bg2);}
 .filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
 .filter-row select{width:auto;font-size:12px;padding:5px 10px;border-radius:20px;}
 
-.hist-table{width:100%;font-size:14px;border-collapse:collapse;}
-.hist-table th{text-align:left;font-weight:500;font-size:12px;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em;}
-.hist-table td{padding:10px 8px;border-bottom:0.5px solid var(--border);}
+.hist-table{width:100%;font-size:12px;border-collapse:collapse;}
+.hist-table th{text-align:left;font-weight:500;font-size:14px;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.04em;}
+.hist-table td{padding:8px;border-bottom:0.5px solid var(--border);white-space:nowrap;font-size:14px;}
 .hist-table tr:hover td{background:var(--bg2);}
 .hist-table tr:last-child td{border-bottom:none;}
 
@@ -368,7 +368,7 @@ select option{background:var(--bg2);}
       <div class="form-group"><label>Precio de cierre</label><input type="number" id="c-precio" placeholder="0.00"></div>
       <div class="form-group"><label>PnL realizado (%)</label><input type="number" id="c-pnl" placeholder="22.5"></div>
       <div class="form-group full"><label>PnL en USDT</label><input type="number" id="c-pnl-usdt" placeholder="0.00"></div>
-      <div class="form-group full"><label>Motivo de cierre</label><select id="c-motivo"><option>Take Profit (manual)</option><option>Take Profit (TP automático)</option><option>Stop Loss</option><option>Cierre manual</option><option>Liquidación</option></select></div>
+      <div class="form-group full"><label>Motivo de cierre</label><select id="c-motivo"><option>TP Manual</option><option>TP Auto</option><option>Stop Loss</option><option>Manual</option><option>Liquidación</option></select></div>
       <div class="form-group full"><label>Notas de cierre</label><textarea id="c-notas" placeholder="¿Seguiste el plan? ¿Qué aprendiste?"></textarea></div>
     </div>
     <button class="btn-submit" onclick="confirmarCierre()">✅ Confirmar cierre</button>
@@ -397,7 +397,7 @@ const ZONA_CONFIG=[
 ];
 
 function getZona(p){return ZONA_CONFIG.find(z=>p>=z.min&&p<z.max)||ZONA_CONFIG[5];}
-function fmtDT(d){const dt=d?new Date(d):new Date();const p=n=>String(n).padStart(2,'0');return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()} ${p(dt.getHours())}:${p(dt.getMinutes())}`;}
+function fmtDT(d){const dt=d?new Date(d):new Date();const p=n=>String(n).padStart(2,'0');return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()}`;}
 function fmtMes(d){const dt=new Date(d);return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][dt.getMonth()]+' '+dt.getFullYear();}
 function mesKey(d){const dt=new Date(d);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;}
 function nowISO(){return new Date().toISOString();}
@@ -579,13 +579,26 @@ function renderHistorial(){
   wrap.innerHTML=`<div style="overflow-x:auto"><table class="hist-table"><thead><tr><th>Activo</th><th>Tipo</th><th>Dir</th><th>Origen</th><th>Apertura</th><th>Cierre</th><th>Lev</th><th>PnL%</th><th>PnL$</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>${data.map(h=>{const pc=h.pnlCierre>=0?'#1D9E75':'#E24B4A';const sign=h.pnlCierre>=0?'+':'';const ob=h.origen==='personal'?'<span class="badge badge-personal">Personal</span>':`<span class="badge badge-senal">${h.fuente||'Señal'}</span>`;const tb=h.tipo==='simple'?'<span class="badge badge-simple">⚡ Simple</span>':'<span class="badge badge-balas">🎯 Balas</span>';return `<tr><td><strong>${h.activo}</strong></td><td>${tb}</td><td><span class="badge badge-${h.dir.toLowerCase()}">${h.dir}</span></td><td>${ob}</td><td style="font-size:10px;color:var(--text2);white-space:nowrap">${fmtDT(h.fechaApertura)}</td><td style="font-size:10px;color:var(--text2);white-space:nowrap">${fmtDT(h.fechaCierre)}</td><td>${h.lev}x</td><td style="color:${pc};font-weight:500">${sign}${h.pnlCierre.toFixed(2)}%</td><td style="color:${pc}">${h.pnlUsdt?(sign+'$'+Math.abs(h.pnlUsdt).toFixed(2)):'—'}</td><td style="font-size:11px">${h.estado||'—'}</td><td style="font-size:11px">${h.motivoCierre}</td></tr>`;}).join('')}</tbody></table></div>`;
 }
 renderDashboard();renderPosiciones();
-function resetData(){
-  if(confirm("¿Seguro? Se borrarán todos los trades y posiciones.")){
-    posiciones=[];historial=[];save();
-    renderDashboard();renderPosiciones();renderHistorial();
-    showToast("Bitácora reseteada","#E24B4A");
-  }
+function resetData(){openModal('reset');}
+function confirmarReset(){
+  posiciones=[];historial=[];save();
+  closeModal('reset');
+  renderDashboard();renderPosiciones();renderHistorial();
+  showToast("Bitácora reseteada","#E24B4A");
 }
+
 </script>
+
+<div class="modal-bg" id="modal-reset" onclick="bgClose(event,'reset')">
+  <div class="modal" style="max-width:360px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:12px;">🗑</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">¿Resetear bitácora?</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Se borrarán todos los trades y posiciones. Esta acción no se puede deshacer.</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeModal('reset')" style="flex:1;padding:9px;border-radius:10px;border:0.5px solid var(--border2);background:none;color:var(--text);cursor:pointer;font-size:13px;">Cancelar</button>
+      <button onclick="confirmarReset()" style="flex:1;padding:9px;border-radius:10px;border:none;background:#E24B4A;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
